@@ -1,0 +1,50 @@
+services:
+  # 1. Base de Datos PostgreSQL 16
+  postgres:
+    image: postgres:16-alpine
+    container_name: sgc_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. pgAdmin (Para administrar la BD gráficamente)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: sgc_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@sgc.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # 3. MinIO (Almacenamiento S3 para PDFs y control documental)
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: sgc_minio
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # Consola Web
+    volumes:
+      - miniodata:/data
+
+volumes:
+  pgdata:
+  miniodata:
